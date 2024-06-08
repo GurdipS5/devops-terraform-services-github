@@ -1,0 +1,7 @@
+name: GitHubRepos
+runtime: dotnet
+description: GitHub Repositories
+config:
+  pulumi:tags:
+    value:
+      pulumi:template: ""

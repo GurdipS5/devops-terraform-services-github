@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34701.34
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GitHubRepos", "Pulumi\GitHubRepos.csproj", "{09BDA232-76B9-4374-923C-CF49486CD0EB}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "build\_build.csproj", "{84156A5B-C5B8-4FCA-975B-F41AE57008ED}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{84156A5B-C5B8-4FCA-975B-F41AE57008ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{84156A5B-C5B8-4FCA-975B-F41AE57008ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09BDA232-76B9-4374-923C-CF49486CD0EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09BDA232-76B9-4374-923C-CF49486CD0EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09BDA232-76B9-4374-923C-CF49486CD0EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09BDA232-76B9-4374-923C-CF49486CD0EB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BFFDBA1A-6B39-4CDE-BBB5-26B2EBFB730F}
+	EndGlobalSection
+EndGlobal
