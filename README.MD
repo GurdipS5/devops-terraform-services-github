@@ -1,11 +1,12 @@
-# GitHub Repository Management with Terraform
+# devops-terraform-services-github
 
 [![Terraform](https://img.shields.io/badge/Terraform-%235835CC.svg?style=for-the-badge&logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![GitHub](https://img.shields.io/badge/github-%23121011.svg?style=for-the-badge&logo=github&logoColor=white)](https://github.com)
+[![Lynx](https://img.shields.io/badge/backend-Lynx-FF6B35?style=for-the-badge)](https://lynx.clivern.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=for-the-badge)](LICENSE)
 [![Maintained](https://img.shields.io/badge/maintained-yes-brightgreen?style=for-the-badge)](https://github.com/yourusername/your-repo)
 
-Manage GitHub repositories, teams, and settings as code using Terraform. Automate repository creation, branch protection, team permissions, and organizational settings.
+Manage GitHub repositories, teams, and settings as code using Terraform with Lynx backend for collaborative state management.
 
 ## 📋 Table of Contents
 
@@ -40,16 +41,19 @@ This repository uses the [GitHub Terraform Provider](https://registry.terraform.
 - **Issue Labels**: Standardize labels across repositories
 - **Actions Settings**: Configure GitHub Actions permissions and runners
 - **Organization Settings**: Manage organization-wide policies
+- **Lynx State Backend**: Collaborative state management with versioning and rollback
 
 ## 🔧 Prerequisites
 
 ### Required
 
 - [Terraform](https://www.terraform.io/downloads) >= 1.5.0
+- [Lynx Backend](https://lynx.clivern.com/) - For state management
 - GitHub account with appropriate permissions:
   - **Organization Owner** (for org-level resources)
   - **Admin** access (for repository management)
 - [GitHub Personal Access Token (PAT)](https://github.com/settings/tokens) or GitHub App
+- Lynx API credentials (API URL and API Key)
 
 ### Required Token Scopes
 
@@ -73,19 +77,43 @@ git clone https://github.com/yourusername/terraform-github-management.git
 cd terraform-github-management
 ```
 
-### 2. Set GitHub Token
+### 2. Set Environment Variables
 
 ```bash
-# Export token as environment variable
+# GitHub authentication
 export GITHUB_TOKEN="ghp_your_personal_access_token"
 
 # Or use GitHub App authentication
 export GITHUB_APP_ID="your_app_id"
 export GITHUB_APP_INSTALLATION_ID="your_installation_id"
 export GITHUB_APP_PEM_FILE="path/to/app-private-key.pem"
+
+# Lynx backend credentials
+export LYNX_API_URL="https://lynx.company.com/api/v1"
+export LYNX_API_KEY="your-lynx-api-key"
 ```
 
-### 3. Configure Variables
+### 3. Configure Backend
+
+Create or update `backend.tf`:
+
+```hcl
+terraform {
+  backend "http" {
+    address        = "https://lynx.company.com/api/v1/terraform/state/github-management/production"
+    lock_address   = "https://lynx.company.com/api/v1/terraform/lock/github-management/production"
+    unlock_address = "https://lynx.company.com/api/v1/terraform/lock/github-management/production"
+    lock_method    = "POST"
+    unlock_method  = "DELETE"
+    
+    # Authentication via headers
+    username = "api-key"
+    password = var.lynx_api_key
+  }
+}
+```
+
+### 4. Configure Variables
 
 Create `terraform.tfvars`:
 
@@ -101,7 +129,7 @@ default_branch_protection = {
 }
 ```
 
-### 4. Initialize and Apply
+### 5. Initialize and Apply
 
 ```bash
 terraform init
@@ -145,11 +173,83 @@ terraform apply
 │   ├── generate-repo.sh         # Helper script
 │   └── bulk-import.sh           # Import existing repos
 ├── .gitignore
-├── backend.tf
+├── backend.tf                   # Lynx backend configuration
 ├── providers.tf
 ├── variables.tf
 ├── outputs.tf
 └── README.md
+```
+
+## ⚙️ Complete Configuration Example
+
+### providers.tf
+
+```hcl
+terraform {
+  required_version = ">= 1.5.0"
+  
+  required_providers {
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
+  }
+}
+
+provider "github" {
+  token = var.github_token
+  owner = var.github_organization
+}
+```
+
+### backend.tf
+
+```hcl
+terraform {
+  backend "http" {
+    address        = "https://lynx.company.com/api/v1/terraform/state/platform/github-management/production"
+    lock_address   = "https://lynx.company.com/api/v1/terraform/lock/platform/github-management/production"
+    unlock_address = "https://lynx.company.com/api/v1/terraform/lock/platform/github-management/production"
+    
+    lock_method    = "POST"
+    unlock_method  = "DELETE"
+    
+    username = "api-key"
+    password = var.lynx_api_key
+  }
+}
+```
+
+### variables.tf
+
+```hcl
+variable "github_token" {
+  description = "GitHub Personal Access Token"
+  type        = string
+  sensitive   = true
+}
+
+variable "lynx_api_key" {
+  description = "Lynx API Key for backend authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "github_organization" {
+  description = "GitHub organization name"
+  type        = string
+}
+```
+
+### terraform.tfvars.example
+
+```hcl
+# Copy to terraform.tfvars and fill in your values
+github_organization = "your-org-name"
+
+# Set via environment variables:
+# export TF_VAR_github_token="ghp_..."
+# export TF_VAR_lynx_api_key="..."
 ```
 
 ## 💻 Usage
@@ -478,17 +578,30 @@ Organize teams by function:
 
 ### State Management
 
+Use Lynx backend for collaborative state management:
+
 ```hcl
 terraform {
-  backend "s3" {
-    bucket         = "company-terraform-state"
-    key            = "github/terraform.tfstate"
-    region         = "us-east-1"
-    encrypt        = true
-    dynamodb_table = "terraform-locks"
+  backend "http" {
+    address        = "https://lynx.company.com/api/v1/terraform/state/platform/github-management/production"
+    lock_address   = "https://lynx.company.com/api/v1/terraform/lock/platform/github-management/production"
+    unlock_address = "https://lynx.company.com/api/v1/terraform/lock/platform/github-management/production"
+    
+    lock_method    = "POST"
+    unlock_method  = "DELETE"
+    
+    username = "api-key"
+    password = var.lynx_api_key
   }
 }
 ```
+
+**Benefits of Lynx:**
+- Team collaboration with RBAC
+- Built-in state locking
+- State versioning and rollback
+- Web-based dashboard
+- Snapshot support
 
 ### Security Scanning
 
@@ -630,19 +743,30 @@ terraform output teams
 ## 🔒 Security
 
 - **Never commit tokens** to version control
-- Use **environment variables** for authentication
+- Use **environment variables** for authentication (GitHub and Lynx)
 - Enable **branch protection** on this repository
-- Use **encrypted remote state** backend
+- Use **Lynx encrypted state backend** with access controls
 - Enable **secret scanning** on all repositories
 - Implement **CODEOWNERS** file for review requirements
 - Regular **audit of team permissions**
+- **Lynx RBAC**: Control who can access and modify state
 
 ## 📚 Resources
 
+### GitHub
 - [GitHub Terraform Provider Documentation](https://registry.terraform.io/providers/integrations/github/latest/docs)
 - [GitHub REST API Documentation](https://docs.github.com/en/rest)
-- [Terraform Best Practices](https://www.terraform-best-practices.com/)
 - [GitHub Security Best Practices](https://docs.github.com/en/code-security)
+
+### Lynx Backend
+- [Lynx Documentation](https://lynx.clivern.com/)
+- [Lynx GitHub Repository](https://github.com/Clivern/Lynx)
+- [Lynx Installation Guide](https://lynx.clivern.com/documentation/Installation/)
+- [Lynx Terraform Provider](https://registry.terraform.io/providers/Clivern/lynx/latest/docs)
+
+### Terraform
+- [Terraform Best Practices](https://www.terraform-best-practices.com/)
+- [Terraform HTTP Backend](https://www.terraform.io/docs/language/settings/backends/http.html)
 
 ## 📄 License
 
