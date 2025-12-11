@@ -12,7 +12,7 @@ env:
   # ====================
   # DEPLOYMENT CONFIGURATION
   # ====================
-  TARGET_ENVIRONMENTS: "dev,stg,prd"  # Comma-separated: dev,tst,stg,prd
+  TARGET_ENVIRONMENTS: "prd"  # Comma-separated: dev,tst,stg,prd
   REQUIRE_APPROVAL: "true"  # true, false
   
   # ====================
