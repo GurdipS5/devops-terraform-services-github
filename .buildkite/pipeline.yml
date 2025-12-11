@@ -1,0 +1,119 @@
+# .buildkite/pipeline.yml
+# Streamlined Terraform Pipeline - All logic in external scripts
+# ⚠️ SECRET SCANNING IS MANDATORY AND CANNOT BE DISABLED
+
+env:
+  # ====================
+  # PROJECT CONFIGURATION
+  # ====================
+  PROJECT_NAME: "terraform-mondoo"
+  SERVICE_NAME: "mondoo"
+  
+  # ====================
+  # DEPLOYMENT CONFIGURATION
+  # ====================
+  TARGET_ENVIRONMENTS: "dev,stg,prd"  # Comma-separated: dev,tst,stg,prd
+  REQUIRE_APPROVAL: "true"  # true, false
+  
+  # ====================
+  # SECURITY CONFIGURATION
+  # ====================
+  MIN_COMPLIANCE_SCORE: "85"
+  ENABLE_SECRET_SCANNING: "true"  # ⚠️ MANDATORY - CANNOT BE DISABLED
+  
+  # ====================
+  # POLICY CONFIGURATION
+  # ====================
+  CONFTEST_POLICY_OCI_URL: "harbor.gssira.com/policies/terraform-policies:latest"
+  CONFTEST_POLICY_NAMESPACE: "terraform.security,terraform.compliance"
+  HARBOR_REGISTRY: "harbor.gssira.com"
+  
+  # ====================
+  # NOTIFICATION CONFIGURATION
+  # ====================
+  WEBHOOK_URL: "https://webhooks.company.com/hooks/terraform-alerts"
+  NOTIFICATION_LEVEL: "all"  # errors-only, deployments, all
+  
+  # ====================
+  # INFRASTRUCTURE CONFIGURATION
+  # ====================
+  VAULT_NAMESPACE: "DevOps/prd/mondoo"
+  VAULT_ADDR: "http://vault.gssira.com:8200"
+  LYNX_BASE_URL: "https://lynx.company.com"
+  BACKUP_RETENTION_DAYS: "30"
+  
+  # ====================
+  # FEATURE FLAGS
+  # ====================
+  ENABLE_AUTO_DOCUMENTATION: "true"
+  ENABLE_SEMANTIC_VERSIONING: "false"
+  VALIDATE_CONVENTIONAL_COMMITS: "false"
+
+steps:
+  # ============================================================================
+  # PHASE 0: MANDATORY SECRET SCANNING (RUNS FIRST - CANNOT BE BYPASSED)
+  # ============================================================================
+  
+  - label: "🔐 Secret Scanning - MANDATORY"
+    key: "secret-scan-mandatory"
+    command: "powershell -File .\\scripts\\Run-SecretScanning.ps1"
+    agents:
+      queue: "windows"
+    # This step CANNOT be skipped - no conditional
+    # Build fails immediately if secrets are detected
+
+  # ============================================================================
+  # PHASE 1: BUILD & VALIDATION (only runs if secret scan passes)
+  # ============================================================================
+  
+  - wait: ~
+    continue_on_failure: false
+  
+  - group: "📦 Build & Validation Phase"
+    key: "build-phase"
+    depends_on: "secret-scan-mandatory"
+    steps:
+      
+      - label: ":hammer: Code Formatting Check"
+        key: "format-check"
+        command: "powershell -File .\\scripts\\Check-TerraformFormatting.ps1"
+        agents:
+          queue: "windows"
+
+      - label: ":package: Validate Module Sources"
+        key: "validate-modules"
+        command: "powershell -File .\\scripts\\Validate-ModuleSources.ps1"
+        agents:
+          queue: "windows"
+
+      - label: ":shield: Security Scanning"
+        key: "security-scan"
+        command: "powershell -File .\\scripts\\Run-SecurityScanning.ps1"
+        artifact_paths:
+          - "security-reports/**/*"
+        agents:
+          queue: "windows"
+
+      - label: ":books: Generate Documentation"
+        key: "generate-docs"
+        command: "powershell -File .\\scripts\\Generate-TerraformDocs.ps1"
+        artifact_paths:
+          - "TERRAFORM.md"
+          - "*/README.md"
+        agents:
+          queue: "windows"
+        if: build.env("ENABLE_AUTO_DOCUMENTATION") == "true"
+
+  # ============================================================================
+  # PHASE 2: DYNAMIC PIPELINE GENERATION (only if all validation passes)
+  # ============================================================================
+  
+  - wait: ~
+    continue_on_failure: false
+
+  - label: ":pipeline: Generate Environment Pipelines"
+    key: "generate-pipelines"
+    depends_on: "build-phase"
+    command: "powershell -File .\\scripts\\Generate-EnvironmentPipelines.ps1"
+    agents:
+      queue: "windows"
