@@ -1,47 +1,29 @@
-resource "github_branch_protection" "example" {
-  repository_id = github_repository.example.node_id
-  # also accepts repository name
-  # repository_id  = github_repository.example.name
+resource "github_organization_ruleset" "protect_main" {
+  name        = "org-protect-main"
+  target      = "branch"
+  enforcement = "active"
 
-  pattern          = "main"
-  enforce_admins   = true
-  allows_deletions = true
-
-  required_status_checks {
-    strict   = false
-    contexts = ["ci/travis"]
+  conditions {
+    ref_name {
+      include = ["refs/heads/main"]
+    }
   }
 
-  required_pull_request_reviews {
-    dismiss_stale_reviews  = true
-    restrict_dismissals    = true
-    dismissal_restrictions = [
-      data.github_user.example.node_id,
-      github_team.example.node_id,
-      "/exampleuser",
-      "exampleorganization/exampleteam",
-    ]
+  rules {
+    creation                = true
+    update                  = true
+    deletion                = true
+    required_linear_history = true
+    required_signatures     = true
+
+    pull_request {
+      required_approving_review_count = 1
+      require_code_owner_review       = true
+      dismiss_stale_reviews           = true
+    }
+
+    required_status_checks {
+      strict = true
+    }
   }
-
-  restrict_pushes {
-    push_allowances = [
-      data.github_user.example.node_id,
-      "/exampleuser",
-      "exampleorganization/exampleteam",
-      # you can have more than one type of restriction (teams + users). If you use
-      # more than one type, you must use node_ids of each user and each team.
-      # github_team.example.node_id
-      # github_user.example-2.node_id
-    ]
-  }
-
-  force_push_bypassers = [
-    data.github_user.example.node_id,
-    "/exampleuser",
-    "exampleorganization/exampleteam",
-    # you can have more than one type of restriction (teams + users)
-    # github_team.example.node_id
-    # github_team.example-2.node_id
-  ]
-
 }
