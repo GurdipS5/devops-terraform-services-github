@@ -1,0 +1,8 @@
+# environments.yml
+environments:
+  - name: prd
+    auto_apply: false
+    branches:
+      - main
+    approvers:
+      - platform-team
